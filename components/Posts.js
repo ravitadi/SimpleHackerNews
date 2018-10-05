@@ -54,37 +54,45 @@ class Posts extends React.Component {
   }
 
   async getComments(ids) {
-    return await Promise.all(ids.map((id) => {
+    let response = await Promise.all(ids.map((id) => {
       let comment = this.getSingleComment(id);
       return comment;
     }
     ))
+
+    return response;
   }
 
   async getSingleComment(id) {
     const {singlePostUrl} = this.props
     let jsonResponse = await (await fetch(singlePostUrl.replace('$id', id))).json();
-    if (jsonResponse.kids) {
-        return this.getComments(jsonResponse.kids)
-        .then((response) =>{
-          return <li key={jsonResponse.id}>
-            <ol>{response}</ol></li>
-        })
-    } else {
       return this.getSingleCommentView(jsonResponse)
-    }
   }
 
   getSingleCommentView(comment) {
     if (comment.deleted) {
       return null;
     }
-    return <li key={comment.id}><p dangerouslySetInnerHTML={{__html: comment.text}}/></li>
+
+    if (comment.kids) {
+      return this.getComments(comment.kids).then(nestedComments => {
+        return (
+          <li key={comment.id}>
+            <p dangerouslySetInnerHTML={{__html: comment.text}}/>
+          {nestedComments.map((item, index) => <ul key={index}>{item}</ul>)}
+          </li>
+        )
+      })
+    } else {
+      return (
+        <li key={comment.id}>
+          <p dangerouslySetInnerHTML={{__html: comment.text}}/>
+        </li>
+      )
+    }
   }
 
   showMoreComments(ids) {
-    console.log(ids)
-
     this.getComments(ids).then(response => {
       this.setState({comments: response});
     });
